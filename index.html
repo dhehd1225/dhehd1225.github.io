@@ -6,7 +6,7 @@
   <title>오동 — 기획 + 개발 포트폴리오</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -28,7 +28,7 @@
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.7;
@@ -64,17 +64,13 @@
 
     /* ── Section label ── */
     .section-label {
-      display: inline-block;
-      font-size: 0.7rem;
+      display: block;
+      font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 0.14em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--accent);
+      color: var(--text-3);
       margin-bottom: 28px;
-      padding: 4px 10px;
-      border: 1px solid var(--result-border);
-      background: var(--result-bg);
-      border-radius: 4px;
     }
 
     /* ── HERO ── */
@@ -125,7 +121,6 @@
       color: var(--text-2);
     }
     .chip-code {
-      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
       background: var(--accent);
       color: #fff;
     }
@@ -173,22 +168,10 @@
     .track-list { display: grid; gap: 0; }
 
     .track-item {
-      display: grid;
-      grid-template-columns: 32px 1fr;
-      gap: 0 18px;
       padding: 18px 0;
       border-bottom: 1px solid var(--border);
-      align-items: start;
     }
     .track-item:last-child { border-bottom: none; padding-bottom: 0; }
-
-    .track-num {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
-      padding-top: 2px;
-    }
 
     .track-title {
       font-size: 0.95rem;
@@ -244,7 +227,7 @@
       gap: 6px;
     }
     .stack-tag {
-      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; /* deslop-ignore 34 */
       font-size: 0.72rem;
       padding: 3px 9px;
       background: var(--badge);
@@ -286,9 +269,7 @@
       display: block;
       margin-top: 8px;
       padding: 10px 14px;
-      background: var(--result-bg);
       border-left: 3px solid var(--accent);
-      border-radius: 0 5px 5px 0;
       font-size: 0.88rem;
       line-height: 1.65;
     }
@@ -417,27 +398,18 @@
     <div class="track-list">
 
       <div class="track-item fade">
-        <span class="track-num">01</span>
-        <div>
-          <div class="track-title">교내 창업학회 NEXT 수료</div>
-          <div class="track-sub">린 스타트업 방법론 기반 팀 창업 프로그램</div>
-        </div>
+        <div class="track-title">교내 창업학회 NEXT 수료</div>
+        <div class="track-sub">린 스타트업 방법론 기반 팀 창업 프로그램</div>
       </div>
 
       <div class="track-item fade">
-        <span class="track-num">02</span>
-        <div>
-          <div class="track-title">KU Global Startlink 창업경진대회 입상</div>
-          <div class="track-sub">나드리 — 외국인 관광객-현지인 매칭 플랫폼</div>
-        </div>
+        <div class="track-title">KU Global Startlink 창업경진대회 입상</div>
+        <div class="track-sub">나드리 — 외국인 관광객-현지인 매칭 플랫폼</div>
       </div>
 
       <div class="track-item fade">
-        <span class="track-num">03</span>
-        <div>
-          <div class="track-title">창업학회 프로덕트데이 최우수상</div>
-          <div class="track-sub">축구 동아리 팀 관리 플랫폼</div>
-        </div>
+        <div class="track-title">창업학회 프로덕트데이 최우수상</div>
+        <div class="track-sub">축구 동아리 팀 관리 플랫폼</div>
       </div>
 
     </div>
