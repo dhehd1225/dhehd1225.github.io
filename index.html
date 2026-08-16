@@ -523,6 +523,53 @@
       </div>
     </div>
 
+    <!-- Stock AI Assistant -->
+    <div class="project fade">
+      <div class="project-header">
+        <div class="project-num">Project 03</div>
+        <h2 class="project-title">Stock AI Assistant</h2>
+        <p class="project-tagline">한국·미국 주식 시장을 자동 수집·분석해 텔레그램으로 리포트를 보내고 보유 종목의 손절·익절을 실시간 모니터링하는 퀀트 자동매매 시스템</p>
+        <div class="stack-row">
+          <span class="stack-tag">Python</span>
+          <span class="stack-tag">APScheduler</span>
+          <span class="stack-tag">SQLite</span>
+          <span class="stack-tag">KIS API</span>
+          <span class="stack-tag">DART API</span>
+          <span class="stack-tag">Claude API</span>
+          <span class="stack-tag">Telegram Bot</span>
+        </div>
+      </div>
+
+      <div class="flow">
+        <div class="flow-row">
+          <span class="flow-key">문제</span>
+          <div class="flow-val">
+            시장 정보를 매일 수동으로 확인하는 비효율과 감정적 판단. 데이터 기반의 매매 신호와 손절·익절 타이밍 알림을 자동화할 수 있는 개인용 시스템이 없었음.
+          </div>
+        </div>
+
+        <div class="flow-row">
+          <span class="flow-key">과정</span>
+          <div class="flow-val">
+            KIS·DART·FRED 등 공식 API와 Claude AI 분석을 조합해 한국·미국 양 시장 대응. 생존편향 없는 PIT(Point-in-Time) 백테스트 방법론 직접 설계. Claude와 Codex 두 AI 에이전트를 레인별로 분리해 병렬 개발. 단일 종목 알파보다 지수/ETF 추세 추종이 안정적이라는 결론을 검증 후 전략 고정.
+            <div class="role-row">
+              <span class="role-tag">전체 설계 · 개발 (단독)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-row is-result">
+          <span class="flow-key">결과</span>
+          <div class="flow-val">
+            <span class="result-box">
+              systemd 서비스로 실운영 중<br>
+              테스트 1,724개 작성 · 백테스트 데이터 521만 행 검증
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -533,7 +580,7 @@
     <div class="footer-inner">
       <div>
         <div class="footer-name">오동</div>
-        <div class="footer-sub">기획 + 개발 &nbsp;·&nbsp; 예비창업가</div>
+        <div class="footer-sub">고려대학교 · 예비창업가</div>
       </div>
       <div class="footer-links">
         <a href="mailto:dhehd1225@gmail.com">이메일</a>
