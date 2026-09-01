@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>오동 — 기획 + 개발 포트폴리오</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -23,7 +24,7 @@
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.7;
@@ -163,14 +164,6 @@
       font-weight: 700;
       letter-spacing: -0.02em;
     }
-    .project-link {
-      margin-left: auto;
-      font-size: 0.8rem;
-      color: var(--text-2);
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .project-link:hover { color: var(--accent); }
 
     .project-tagline {
       font-size: 0.88rem;
@@ -296,11 +289,7 @@
       고려대학교 컴퓨터학과.
     </p>
     <div class="hero-links fade fade-d2">
-      <a href="samples/" class="btn btn-primary">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        작업 샘플
-      </a>
-      <a href="mailto:dhehd1225@gmail.com" class="btn">
+      <a href="mailto:dhehd1225@gmail.com" class="btn btn-primary">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         이메일
       </a>
@@ -365,7 +354,6 @@
       <div class="project-meta">
         <span class="project-num">01</span>
         <h2 class="project-title">나드리 (Nadri)</h2>
-        <a class="project-link" href="nadri-demo/">데모 보기 →</a>
       </div>
       <p class="project-tagline">한국을 방문한 외국인 관광객과 현지인을 매칭하는 플랫폼 — 장소가 아닌 사람과 경험을 연결</p>
       <div class="stack-row">
@@ -409,7 +397,6 @@
       <div class="project-meta">
         <span class="project-num">02</span>
         <h2 class="project-title">Match Time</h2>
-        <a class="project-link" href="match-time-demo/">데모 보기 →</a>
       </div>
       <p class="project-tagline">축구 동아리를 위한 팀 관리 플랫폼 — 참석 관리, 라인업 구성, 상대팀 매칭</p>
       <div class="stack-row">
@@ -448,7 +435,6 @@
       <div class="project-meta">
         <span class="project-num">03</span>
         <h2 class="project-title">Stock AI Assistant</h2>
-        <a class="project-link" href="stock-ai-demo/">데모 보기 →</a>
       </div>
       <p class="project-tagline">자연어로 종목을 묻고 판단을 받는 텔레그램 챗봇 형태의 AI 주식 비서 — 한국·미국 시장 자동 수집·분석, 손절·익절 실시간 모니터링</p>
       <div class="stack-row">
