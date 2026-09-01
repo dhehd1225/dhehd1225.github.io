@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>그린빈 로스터스 — 성수 스페셜티 카페</title>
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+  :root {
+    --accent:      #6f4a2f;
+    --accent-ink:  #573923;
+    --accent-soft: #efe7df;
+    --wrap: 960px;
+  }
+
+  /* ---- nav ---- */
+  nav { border-bottom: 1px solid var(--line); }
+  .nav-in { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 9px; font-size: 0.95rem; }
+  .brand-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .nav-links { display: flex; gap: 24px; font-size: var(--fs-sm); color: var(--sub); }
+  .nav-links a:hover { color: var(--ink); text-decoration: none; }
+
+  /* ---- hero ---- */
+  .hero { padding: clamp(64px, 11vw, 96px) 0 clamp(48px, 8vw, 72px); border-bottom: 1px solid var(--line); }
+  .hero h1 { font-size: var(--fs-display); letter-spacing: -0.03em; line-height: 1.16; margin-top: 18px; }
+  .hero .lede { margin-top: 20px; }
+  .hero-cta { margin-top: 32px; }
+
+  /* ---- menu rows ---- */
+  .menu-list { margin-top: 28px; display: grid; gap: 0; }
+  .menu-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem;
+  }
+  .menu-row:first-child { border-top: 1px solid var(--line); }
+  .menu-row .price { color: var(--sub); font-variant-numeric: tabular-nums; font-size: var(--fs-sm); }
+  .menu-row .name { font-weight: 500; }
+  .menu-row .origin { font-size: var(--fs-xs); color: var(--sub-2); margin-left: 8px; font-weight: 400; }
+
+  /* ---- info grid ---- */
+  .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 28px; }
+  .info-card { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; background: var(--panel); }
+  .info-card .k { font-size: var(--fs-xs); color: var(--sub); font-weight: 500; letter-spacing: 0.01em; margin-bottom: 8px; }
+  .info-card .v { font-size: 0.9rem; font-weight: 500; line-height: 1.6; }
+  .info-card .v-sub { font-size: var(--fs-xs); color: var(--sub); display: block; margin-top: 3px; font-weight: 400; }
+
+  /* ---- story section ---- */
+  .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 32px; align-items: start; }
+  .story-grid p { color: var(--sub); font-size: 0.93rem; line-height: 1.8; }
+  .story-stat { display: grid; gap: 16px; }
+  .sstat { border-top: 1px solid var(--line); padding-top: 16px; }
+  .sstat .n { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.03em; color: var(--accent-ink); }
+  .sstat .l { font-size: var(--fs-xs); color: var(--sub); margin-top: 2px; }
+
+  /* ---- demo note ---- */
+  .demo-note { margin-top: 20px; }
+
+  /* ========== chat widget ========== */
+  .cw-launch {
+    position: fixed; right: 24px; bottom: 24px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+    box-shadow: var(--shadow); z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .cw-launch:hover { background: var(--accent-ink); transform: scale(1.05); }
+  .cw-launch svg { width: 24px; height: 24px; fill: #fff; }
+
+  .cw-panel {
+    position: fixed; right: 24px; bottom: 88px;
+    width: 356px; max-width: calc(100vw - 32px);
+    height: 520px; max-height: calc(100vh - 120px);
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+    display: flex; flex-direction: column; overflow: hidden; z-index: 50;
+    opacity: 0; transform: translateY(8px) scale(.98);
+    pointer-events: none;
+    transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+  }
+  .cw-panel.open { opacity: 1; transform: none; pointer-events: auto; }
+
+  .cw-head {
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    background: var(--panel);
+  }
+  .cw-head-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .cw-head-text .t { font-size: 0.875rem; font-weight: 700; line-height: 1.3; }
+  .cw-head-text .s { font-size: var(--fs-xs); color: var(--sub); margin-top: 1px; }
+  .cw-close {
+    margin-left: auto; background: none; border: none;
+    color: var(--sub-2); cursor: pointer; line-height: 1;
+    font-size: 1.1rem; padding: 4px;
+    transition: color var(--dur) var(--ease);
+  }
+  .cw-close:hover { color: var(--ink); }
+
+  .cw-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    background: var(--bg); display: flex; flex-direction: column; gap: 10px;
+    scroll-behavior: smooth;
+  }
+
+  /* messages */
+  .msg-wrap { display: flex; flex-direction: column; }
+  .msg { max-width: 86%; font-size: 0.84rem; line-height: 1.65; white-space: pre-wrap; }
+  .msg.u {
+    align-self: flex-end;
+    background: var(--accent); color: #fff;
+    padding: 9px 13px; border-radius: 12px 12px 3px 12px;
+  }
+  .msg.a { align-self: flex-start; color: var(--ink); }
+  .msg-meta { font-size: var(--fs-xs); color: var(--sub-2); margin-top: 3px; }
+  .msg-wrap:has(.msg.u) .msg-meta { align-self: flex-end; }
+
+  /* typing indicator — plain animated dots, no glow */
+  .typing-dots { display: inline-flex; align-items: center; gap: 4px; padding: 10px 4px; }
+  .typing-dots span {
+    display: block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--sub-2);
+    animation: dot-pulse 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dot-pulse {
+    0%, 80%, 100% { opacity: .25; transform: scale(.85); }
+    40%           { opacity: 1;   transform: scale(1); }
+  }
+
+  /* suggestion chips inside chat */
+  .chat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chat-chip {
+    font-size: 0.78rem; border: 1px solid var(--line-2);
+    background: var(--panel); border-radius: var(--r-sm);
+    padding: 5px 11px; cursor: pointer; color: var(--sub);
+    font-family: inherit;
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  }
+  .chat-chip:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+  .cw-foot {
+    border-top: 1px solid var(--line); padding: 10px;
+    display: flex; gap: 8px; flex-shrink: 0; background: var(--bg);
+  }
+  .cw-foot-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .cw-foot input { flex: 1; border-radius: var(--r-sm); font-size: 0.84rem; padding: 9px 12px; }
+  .cw-foot-send {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--r-sm); padding: 0 15px;
+    font-size: 0.84rem; font-family: inherit; cursor: pointer;
+    font-weight: 500; white-space: nowrap;
+    transition: background var(--dur) var(--ease);
+  }
+  .cw-foot-send:hover { background: var(--accent-ink); }
+
+  .demo-tag {
+    position: fixed; right: 24px; bottom: 7px;
+    font-size: var(--fs-xs); color: var(--sub-2); z-index: 49;
+  }
+
+  /* ---- responsive ---- */
+  @media (max-width: 640px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .story-grid { grid-template-columns: 1fr; gap: 28px; }
+  }
+  @media (max-width: 400px) {
+    .cw-panel { right: 0; bottom: 0; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+    .cw-launch { right: 16px; bottom: 16px; }
+    .demo-tag { right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<a href="#main" class="sr-only">본문 바로가기</a>
+
+<nav aria-label="주 메뉴">
+  <div class="wrap nav-in">
+    <div class="brand"><span class="brand-dot" aria-hidden="true"></span>그린빈 로스터스</div>
+    <div class="nav-links">
+      <a href="#menu">메뉴</a>
+      <a href="#visit">오시는 길</a>
+      <a href="#reserve">예약</a>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+<div class="hero">
+  <div class="wrap">
+    <p class="eyebrow reveal d1">성수 · 스페셜티 커피 로스터리</p>
+    <h1 class="reveal d2">매일 아침 로스팅한<br>싱글오리진 한 잔</h1>
+    <p class="lede reveal d3">서울숲 근처 조용한 골목 창고를 개조한 공간. 산지에서 직접 선별한 원두를 그날 볶아 핸드드립으로 냅니다. 시즌마다 바뀌는 블렌드, 노트북 작업과 소규모 모임을 환영합니다.</p>
+    <div class="hero-cta reveal d3">
+      <a id="reserve" href="#" class="btn btn-primary btn-lg">테이블 예약하기</a>
+    </div>
+  </div>
+</div>
+
+<section class="section" id="menu" aria-labelledby="menu-title">
+  <div class="wrap">
+    <h2 id="menu-title">대표 메뉴</h2>
+    <p class="sect-lede">시즌 원두에 따라 핸드드립 풍미가 달라집니다. 오늘의 원두는 카운터에서 확인하세요.</p>
+    <div class="menu-list" role="list" aria-label="메뉴 가격표">
+      <div class="menu-row" role="listitem">
+        <span><span class="name">핸드드립</span><span class="origin">싱글오리진 · 당일 로스팅</span></span>
+        <span class="price">6,500원</span>
+      </div>
+      <div class="menu-row" role="listitem">
+        <span class="name">플랫화이트</span>
+        <span class="price">5,000원</span>
+      </div>
+      <div class="menu-row" role="listitem">
+        <span class="name">시즌 블렌드 아메리카노</span>
+        <span class="price">4,500원</span>
+      </div>
+      <div class="menu-row" role="listitem">
+        <span class="name">바닐라 빈 라떼</span>
+        <span class="price">5,800원</span>
+      </div>
+      <div class="menu-row" role="listitem">
+        <span><span class="name">홈로스팅 원두</span><span class="origin">200g · 포장 판매</span></span>
+        <span class="price">18,000원</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="story-title">
+  <div class="wrap">
+    <h2 id="story-title">로스터리 소개</h2>
+    <div class="story-grid">
+      <p>2018년 서울숲 뒷골목 작은 창고에서 시작했습니다. 에티오피아 예가체프, 콜롬비아 후일라, 파나마 게이샤 등 계절별로 바뀌는 싱글오리진을 직접 로스팅합니다.<br><br>핸드드립 한 잔에는 당일 볶은 원두만 씁니다. 추출 방식은 주문 시 바리스타와 상의할 수 있습니다.</p>
+      <div class="story-stat">
+        <div class="sstat"><div class="n">7년</div><div class="l">성수 골목 직접 로스팅</div></div>
+        <div class="sstat"><div class="n">12종</div><div class="l">시즌 보유 싱글오리진</div></div>
+        <div class="sstat"><div class="n">2·3층</div><div class="l">작업·모임 전용 공간</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="visit" aria-labelledby="visit-title">
+  <div class="wrap">
+    <h2 id="visit-title">매장 안내</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="k">영업시간</div>
+        <div class="v">평일 08:00–22:00<br>주말 10:00–23:00<span class="v-sub">라스트오더 마감 30분 전</span></div>
+      </div>
+      <div class="info-card">
+        <div class="k">위치</div>
+        <div class="v">서울 성동구 서울숲2길<br>서울숲역 3번 출구 4분</div>
+      </div>
+      <div class="info-card">
+        <div class="k">편의 시설</div>
+        <div class="v">무료 와이파이 · 콘센트<br>2층 테라스 (반려동물 가능)<br>3층 단체 모임 공간</div>
+      </div>
+    </div>
+    <p class="note demo-note">이 페이지는 데모용 가상 카페입니다. 우하단 상담봇에게 영업시간·주차·예약·반려동물 동반 등을 물어보세요.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="disc">이 사이트는 RAG 챗봇 구현 기술 데모입니다. 카페 정보는 가상이며 실제 영업장이 아닙니다.</div>
+    © 2026 그린빈 로스터스 (demo) · <a href="admin.html">관리자 콘솔</a>
+  </div>
+</footer>
+
+<button class="cw-launch" id="cwLaunch" aria-label="상담 챗봇 열기" aria-expanded="false" aria-controls="cwPanel">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.5 3 2 6.9 2 11.7c0 2.5 1.2 4.7 3.2 6.2L4 22l4.3-2c1.1.3 2.4.5 3.7.5 5.5 0 10-3.9 10-8.8S17.5 3 12 3z"/></svg>
+</button>
+<div class="demo-tag" aria-hidden="true">그린빈 상담봇 · 데모</div>
+
+<div class="cw-panel" id="cwPanel" role="dialog" aria-label="그린빈 로스터스 상담봇" aria-modal="false">
+  <div class="cw-head">
+    <span class="cw-head-dot" aria-hidden="true"></span>
+    <div class="cw-head-text">
+      <div class="t">그린빈 상담봇</div>
+      <div class="s">성수점 · 보통 바로 답해요</div>
+    </div>
+    <button class="cw-close" id="cwClose" aria-label="챗봇 닫기">&#x2715;</button>
+  </div>
+  <div class="cw-body" id="cwBody" role="log" aria-live="polite" aria-label="대화 내용"></div>
+  <div class="cw-foot">
+    <label class="cw-foot-label" for="cwInput">질문 입력</label>
+    <input id="cwInput" type="text" placeholder="궁금한 점을 입력하세요" autocomplete="off">
+    <button class="cw-foot-send" id="cwSendBtn" aria-label="전송">전송</button>
+  </div>
+</div>
+
+<script src="chat-widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock AI Assistant — 대화형 투자 비서</title>
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+  :root {
+    --accent:      #1a6b54;
+    --accent-ink:  #12503f;
+    --accent-soft: #e2efe9;
+    --wrap: 860px;
+  }
+
+  /* ── chat mock ──────────────────────────────────── */
+  .chat-block {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    padding: 20px;
+    margin-top: 12px;
+  }
+  .bubble-q {
+    display: block;
+    margin-left: auto;
+    width: fit-content;
+    max-width: 88%;
+    background: var(--ink);
+    color: #fff;
+    padding: 9px 14px;
+    border-radius: 10px 10px 2px 10px;
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+  }
+  .bubble-a {
+    margin-top: 14px;
+    font-size: var(--fs-sm);
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  .bubble-who {
+    font-size: var(--fs-xs);
+    color: var(--sub-2);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    margin-bottom: 6px;
+  }
+  .bubble-text { color: var(--ink-2); }
+  .bubble-accent { color: var(--accent-ink); font-weight: 500; }
+
+  /* ── scorecard ──────────────────────────────────── */
+  .scorecard {
+    margin-top: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    padding: 14px 16px;
+  }
+  .scorecard-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .scorecard-name { font-weight: 700; font-size: 0.9rem; }
+  .scorecard-total {
+    font-size: 1.35rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+  .scorecard-total-denom {
+    font-size: var(--fs-xs);
+    color: var(--sub);
+    font-weight: 400;
+    margin-left: 2px;
+  }
+  .factors { margin-top: 14px; display: grid; gap: 8px; }
+  .factor {
+    display: grid;
+    grid-template-columns: 72px 1fr 52px;
+    align-items: center;
+    gap: 10px;
+    font-size: var(--fs-xs);
+    color: var(--sub);
+  }
+  .factor-label { color: var(--ink-2); font-size: var(--fs-sm); }
+  .factor-track {
+    height: 5px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .factor-fill {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+  .factor-val { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ── MDD viz ────────────────────────────────────── */
+  .mdd-section { margin-top: 28px; }
+  .mdd-row {
+    display: grid;
+    grid-template-columns: 136px 1fr;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .mdd-label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .mdd-track {
+    height: 28px;
+    background: var(--panel-2);
+    border-radius: var(--r-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .mdd-fill {
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    border-radius: var(--r-sm);
+  }
+  .mdd-fill.is-strategy { background: var(--accent); }
+  .mdd-fill.is-bnh      { background: var(--down); opacity: .8; }
+  .mdd-text {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── equity sparkline ───────────────────────────── */
+  .sparkline-wrap {
+    margin-top: 22px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--panel);
+  }
+  .sparkline-caption {
+    font-size: var(--fs-xs);
+    color: var(--sub);
+    margin-top: 10px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .sparkline-caption span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .sparkline-dot {
+    display: inline-block;
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+  }
+
+  /* ── grid cells ─────────────────────────────────── */
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .cell {
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    padding: 14px 16px;
+  }
+  .cell-key {
+    font-size: var(--fs-xs);
+    color: var(--sub);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+  .cell-val {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: 5px;
+    line-height: 1.45;
+    color: var(--ink-2);
+  }
+
+  /* ── experiment list ────────────────────────────── */
+  ul.exp-list {
+    list-style: none;
+    margin-top: 18px;
+    display: grid;
+    gap: 9px;
+  }
+  ul.exp-list li {
+    padding-left: 18px;
+    position: relative;
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  ul.exp-list li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--sub-2);
+  }
+  ul.exp-list li.rej { color: var(--down); }
+  ul.exp-list li.rej::before { color: color-mix(in srgb, var(--down) 50%, transparent); }
+  ul.exp-list li.pass { color: var(--up); }
+  ul.exp-list li.pass::before { color: color-mix(in srgb, var(--up) 50%, transparent); }
+
+  /* ── table scroll on mobile ─────────────────────── */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-scroll table { min-width: 400px; }
+
+  /* ── callout paragraph ───────────────────────────── */
+  .callout {
+    margin-top: 22px;
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+    line-height: 1.7;
+  }
+  .callout strong { color: var(--accent-ink); }
+
+  @media (max-width: 600px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .mdd-row { grid-template-columns: 84px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page-head" role="banner">
+  <div class="wrap">
+    <div class="inner">
+      <a href="../" class="back" aria-label="포트폴리오 목록으로">← 목록</a>
+      <p class="eyebrow reveal">개인 기술 프로젝트 · 대화형 투자 비서</p>
+      <h1 class="reveal d1">Stock AI Assistant</h1>
+      <p class="lede reveal d2">한국·미국 주식을 자동으로 수집·분석하고, 멀티팩터 점수와 Claude AI 판단을 결합해 투자 의사결정을 보조하는 대화형 비서. 사용자가 말을 걸면 21종의 읽기전용 도구로 답한다.</p>
+      <div class="stack reveal d3">
+        <span>Python 3.12</span>
+        <span>SQLite · 28 tables</span>
+        <span>Claude Opus + Sonnet</span>
+        <span>APScheduler · 38 jobs</span>
+        <span>systemd · Restart=always</span>
+      </div>
+      <p class="note reveal d4">투자 자문이 아니라 개인 학습·기술 데모입니다. 실거래는 비활성(페이퍼) 상태이며, 화면의 종목·수치는 구조를 보여주기 위한 예시입니다.</p>
+    </div>
+  </div>
+</header>
+
+<main role="main">
+
+<!-- 챗봇 데모 -->
+<section class="section" aria-labelledby="sec-chat">
+  <div class="wrap">
+    <h2 id="sec-chat">말을 걸면 답한다</h2>
+    <p class="sect-lede">슬래시 명령과 자연어를 함께 이해한다. 135개 이상의 명령을 지원하며, 대화 맥락을 12턴까지 기억한다. 아래는 실제 응답 형태를 재현한 예시.</p>
+
+    <div class="mt">
+      <!-- 대화 1: 멀티팩터 점수 -->
+      <div class="chat-block" role="log" aria-label="삼성전자 점수 조회 대화">
+        <span class="bubble-q" role="note">삼전 점수</span>
+        <div class="bubble-a">
+          <p class="bubble-who">Assistant</p>
+          <p class="bubble-text">삼성전자(005930) 멀티팩터 종합 점수입니다.</p>
+          <div class="scorecard" role="region" aria-label="삼성전자 멀티팩터 점수 카드">
+            <div class="scorecard-top">
+              <span class="scorecard-name">삼성전자 · 005930</span>
+              <span class="scorecard-total" aria-label="종합 점수 71점 / 100점">71<span class="scorecard-total-denom">/100</span></span>
+            </div>
+            <div class="factors" role="list">
+              <div class="factor" role="listitem">
+                <span class="factor-label">펀더멘털</span>
+                <div class="factor-track" role="presentation">
+                  <span class="factor-fill" style="width:80%" aria-label="펀더멘털 24 / 30"></span>
+                </div>
+                <span class="factor-val">24 / 30</span>
+              </div>
+              <div class="factor" role="listitem">
+                <span class="factor-label">수급</span>
+                <div class="factor-track" role="presentation">
+                  <span class="factor-fill" style="width:72%" aria-label="수급 18 / 25"></span>
+                </div>
+                <span class="factor-val">18 / 25</span>
+              </div>
+              <div class="factor" role="listitem">
+                <span class="factor-label">거시</span>
+                <div class="factor-track" role="presentation">
+                  <span class="factor-fill" style="width:65%" aria-label="거시 13 / 20"></span>
+                </div>
+                <span class="factor-val">13 / 20</span>
+              </div>
+              <div class="factor" role="listitem">
+                <span class="factor-label">기술</span>
+                <div class="factor-track" role="presentation">
+                  <span class="factor-fill" style="width:60%" aria-label="기술 9 / 15"></span>
+                </div>
+                <span class="factor-val">9 / 15</span>
+              </div>
+              <div class="factor" role="listitem">
+                <span class="factor-label">뉴스</span>
+                <div class="factor-track" role="presentation">
+                  <span class="factor-fill" style="width:70%" aria-label="뉴스 7 / 10"></span>
+                </div>
+                <span class="factor-val">7 / 10</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 대화 2: 리밸런싱 -->
+      <div class="chat-block" role="log" aria-label="포트폴리오 리밸런싱 대화">
+        <span class="bubble-q" role="note">국내60 해외40 맞춰줘</span>
+        <div class="bubble-a">
+          <p class="bubble-who">Assistant</p>
+          <p class="bubble-text">현재 국내 68% / 해외 32%입니다. 목표(60/40) 대비 국내가 8%p 초과 상태예요. 리밸런싱하려면 국내 비중을 약 8%p 줄이고 해외를 늘리면 됩니다. 세후 실효수익률 기준으로 계산하면 해외분 매수 시 배당 15.4% / 양도 22% 과세가 반영됩니다. <span class="bubble-accent">실제 주문은 실행하지 않고 제안만 제공합니다.</span></p>
+        </div>
+      </div>
+
+      <!-- 대화 3: 킬스위치 -->
+      <div class="chat-block" role="log" aria-label="매수 차단 이유 조회 대화">
+        <span class="bubble-q" role="note">오늘 왜 안 샀어?</span>
+        <div class="bubble-a">
+          <p class="bubble-who">Assistant</p>
+          <p class="bubble-text">현재 <code>kill_switch = ON</code> (2026-07-21 발동) 상태라 신규 매수가 차단되어 있습니다. 매도만 허용되는 안전 모드이며, 이 판단의 출처는 <code>trading_state.kill_switch</code>를 직접 조회한 값입니다. 해제 전까지는 데이터 수집·분석·리포트만 계속됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 백테스트 -->
+<section class="section" aria-labelledby="sec-backtest">
+  <div class="wrap">
+    <h2 id="sec-backtest">핵심 가치는 수익이 아니라 낙폭 방어</h2>
+    <p class="sect-lede">현행 운용 전략 <code>kr_kospi_trend</code> — KOSPI 10개월 이동평균 추세추종. 지수 위에서는 코스피 ETF 100%, 아래에서는 현금. 2018.1 ~ 2026.6 백테스트(비용 반영).</p>
+
+    <div class="table-scroll mt">
+      <table aria-label="백테스트 성과 비교표">
+        <thead>
+          <tr>
+            <th>지표</th>
+            <th class="num">kr_kospi_trend</th>
+            <th class="num">단순보유 (069500)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>총수익</td>
+            <td class="num">+370.1%</td>
+            <td class="num">+368.8%</td>
+          </tr>
+          <tr>
+            <td>최대낙폭 (MDD)</td>
+            <td class="num"><span class="delta-up" aria-label="전략 MDD 마이너스 20.6 퍼센트">−20.6%</span></td>
+            <td class="num"><span class="delta-down" aria-label="단순보유 MDD 마이너스 38.1 퍼센트">−38.1%</span></td>
+          </tr>
+          <tr>
+            <td>Sharpe</td>
+            <td class="num"><span class="delta-up">1.11</span></td>
+            <td class="num"><span class="delta-down">0.92</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MDD 시각 비교 -->
+    <div class="mdd-section" role="img" aria-label="최대낙폭 시각 비교: kr_kospi_trend −20.6%, 단순보유 −38.1%">
+      <div class="mdd-row">
+        <span class="mdd-label">kr_kospi_trend</span>
+        <div class="mdd-track">
+          <div class="mdd-fill is-strategy" style="width:54%"></div>
+          <span class="mdd-text">−20.6%</span>
+        </div>
+      </div>
+      <div class="mdd-row">
+        <span class="mdd-label">단순보유 (069500)</span>
+        <div class="mdd-track">
+          <div class="mdd-fill is-bnh" style="width:100%"></div>
+          <span class="mdd-text">−38.1%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 자산 곡선 스파크라인 -->
+    <div class="sparkline-wrap">
+      <svg
+        viewBox="0 0 640 120"
+        width="100%"
+        height="120"
+        aria-label="2018~2026 자산 곡선: 전략(녹색)과 단순보유(적색) 비교. 전략은 하락 구간에서 현금으로 전환해 낙폭을 방어."
+        role="img"
+        style="display:block; overflow:visible;"
+      >
+        <!-- Buy-and-hold curve (red, behind) -->
+        <polyline
+          points="0,108 40,100 80,86 120,90 160,60 200,52 240,22 280,100 320,104 360,94 400,70 440,62 480,50 520,36 560,24 600,14 640,10"
+          fill="none"
+          stroke="var(--down)"
+          stroke-width="1.5"
+          stroke-opacity="0.5"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+        <!-- Strategy curve (green, in front) -->
+        <polyline
+          points="0,108 40,100 80,86 120,86 160,86 200,52 240,22 280,52 320,52 360,50 400,38 440,32 480,26 520,18 560,12 600,8 640,4"
+          fill="none"
+          stroke="var(--accent)"
+          stroke-width="2"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+        />
+      </svg>
+      <div class="sparkline-caption">
+        <span><span class="sparkline-dot" style="background:var(--accent)"></span>kr_kospi_trend</span>
+        <span><span class="sparkline-dot" style="background:var(--down); opacity:.5"></span>단순보유 (069500)</span>
+        <span style="color:var(--sub-2)">2018.1 ~ 2026.6 · 개략적 일별 추세 재현, 정확한 시뮬레이션이 아님</span>
+      </div>
+    </div>
+
+    <p class="callout">수익은 지수 보유와 거의 같지만, 하락장에서 겪는 낙폭을 <strong>−38%에서 −20%로 절반 가까이 방어</strong>한다. 등가중·지수보유 두 baseline을 모두 초과해 Phase 0 검증을 통과.</p>
+  </div>
+</section>
+
+<!-- 아키텍처 -->
+<section class="section" aria-labelledby="sec-arch">
+  <div class="wrap">
+    <h2 id="sec-arch">수집 → 분석 → AI 판단 → 리포트</h2>
+    <p class="sect-lede">약 648개 파일, 6개 계층. 수집기가 원천 데이터를 모으고, 분석기가 점수를 매기고, AI가 종합 판단한 뒤 리포트·알림으로 표면화된다.</p>
+    <div class="table-scroll mt">
+      <table aria-label="시스템 계층 구성표">
+        <thead>
+          <tr><th>계층</th><th>구성</th><th>역할</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>수집</td><td><code>collectors ×23</code></td><td>KRX · yfinance · DART · FMP · Finnhub · 네이버 · FRED · ECOS · KIS</td></tr>
+          <tr><td>분석</td><td><code>analyzers ×14</code></td><td>멀티팩터 점수, 기술·펀더멘털, 리스크, ETF</td></tr>
+          <tr><td>판단</td><td><code>ai_analyzer</code></td><td>Claude Sonnet(대화) + Opus(정밀판단) 하이브리드</td></tr>
+          <tr><td>표면</td><td><code>assistant ×37</code></td><td>RAG 챗봇, 명령어, 리포트, 알림 outbox</td></tr>
+          <tr><td>매매</td><td><code>trading ×14</code></td><td>자동매매 엔진, KIS 주문, 페이퍼 트레이딩</td></tr>
+          <tr><td>운영</td><td><code>APScheduler</code></td><td>비서 잡 28개 + 트레이더 잡 10개</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 안전장치 -->
+<section class="section" aria-labelledby="sec-safety">
+  <div class="wrap">
+    <h2 id="sec-safety">안전장치가 먼저, 수익은 그 다음</h2>
+    <p class="sect-lede">투자 시스템에서 가장 위험한 건 잘못된 자동 실행이다. fail-closed 원칙과 다중 잠금을 먼저 설계했다.</p>
+    <div class="grid2" role="list">
+      <div class="cell" role="listitem">
+        <div class="cell-key">실거래</div>
+        <div class="cell-val"><code>TRADING_ENABLED=false</code> · <code>KIS_IS_VIRTUAL=true</code></div>
+      </div>
+      <div class="cell" role="listitem">
+        <div class="cell-key">킬스위치</div>
+        <div class="cell-val">ON — 신규매수 차단, 매도만 허용</div>
+      </div>
+      <div class="cell" role="listitem">
+        <div class="cell-key">한도</div>
+        <div class="cell-val">종목당 5% 캡 · 위험명령 2단계 확인</div>
+      </div>
+      <div class="cell" role="listitem">
+        <div class="cell-key">장애 처리</div>
+        <div class="cell-val">fail-closed (브로커 장애 ≠ 빈 계좌)</div>
+      </div>
+      <div class="cell" role="listitem">
+        <div class="cell-key">전략 무결성</div>
+        <div class="cell-val">freeze SHA256 지문 · 변경통제 감사</div>
+      </div>
+      <div class="cell" role="listitem">
+        <div class="cell-key">검증</div>
+        <div class="cell-val">테스트 2,977 passed · 감사 스크립트 129개</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 실험 이력 -->
+<section class="section" aria-labelledby="sec-exp">
+  <div class="wrap">
+    <h2 id="sec-exp">통과보다 기각이 많았다</h2>
+    <p class="sect-lede">모든 전략은 사전등록 → naive baseline 비교 → net 성과 검증(Phase 0)을 거친다. 기준을 못 넘긴 실험은 냉정하게 버렸다.</p>
+    <ul class="exp-list" aria-label="실험 이력 목록">
+      <li class="rej"><code>exp_009</code> 분산추세(KR+US+채권+금) — MDD 개선 3.9%p &lt; 기준 5%p</li>
+      <li class="rej"><code>exp_011</code> 변동성 타겟팅 — Sharpe −0.21 하락</li>
+      <li class="rej"><code>exp_012</code> 이중 시간대 — 회전율 기준 미달</li>
+      <li class="rej"><code>exp_013</code> 하락장 안전자산 — 비용 &gt; 캐리</li>
+      <li class="rej"><code>exp_015</code> 추세 앙상블 — Sharpe +0.044 &lt; 기준 +0.05</li>
+      <li class="pass"><code>exp_003~006</code> — 현행 추세필터 전략의 채택 근거</li>
+    </ul>
+    <p class="callout mt">Phase 0 절대규칙: 생존편향 제거(PIT) · naive baseline 필수 비교 · 일별 MDD · 능동 종목선택 금지 · 사전등록 · net 기준.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-foot" role="contentinfo">
+  <div class="wrap">
+    <div class="disc">
+      <strong>고지</strong> — 이 프로젝트는 개인 학습·기술 포트폴리오 목적으로 제작되었습니다. 투자 자문·유사투자자문 서비스가 아니며, 어떤 종목의 매매도 권유하지 않습니다. 실거래 기능은 비활성 상태이고, 화면에 표시된 종목명과 점수는 시스템 구조를 설명하기 위한 예시 값입니다.
+    </div>
+    made by <strong>od1225</strong> · Stock AI Assistant · 2026
+  </div>
+</footer>
+
+</body>
+</html>

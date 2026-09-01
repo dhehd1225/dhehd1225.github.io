@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>가격·리뷰 모니터링 자동화 — 업무 자동화 데모</title>
+<meta name="description" content="스마트스토어·쿠팡 경쟁사 가격·재고·리뷰 자동 수집 데모. 실제 프로젝트 샘플.">
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+:root {
+  --accent:      #3f5566;
+  --accent-ink:  #30414f;
+  --accent-soft: #e6ebef;
+  --wrap:        1000px;
+}
+
+/* ---- config panel ---- */
+.config-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: clamp(20px, 3vw, 28px);
+}
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 28px;
+  margin-bottom: 20px;
+}
+@media (max-width: 600px) { .config-grid { grid-template-columns: 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field-full { grid-column: 1 / -1; }
+
+.check-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.check-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); color: var(--sub);
+  cursor: pointer; user-select: none;
+}
+.check-item input[type="checkbox"] {
+  width: auto; accent-color: var(--accent); cursor: pointer;
+}
+.check-item input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+.config-footer {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-top: 18px; border-top: 1px solid var(--line);
+}
+
+/* ---- run log console ---- */
+.log-wrap {
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: #f9f9f8; overflow: hidden;
+}
+.log-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+.log-label {
+  font-size: var(--fs-sm); font-weight: 500; color: var(--sub);
+  display: flex; align-items: center; gap: 8px;
+}
+.log-running-indicator {
+  display: none; font-size: var(--fs-xs); color: var(--accent);
+  font-family: var(--mono); animation: blink-cursor 1s step-end infinite;
+}
+.log-running-indicator.active { display: inline; }
+@keyframes blink-cursor { 0%,100% { opacity:1; } 50% { opacity:0; } }
+
+.log-console {
+  font-family: var(--mono); font-size: 0.78rem; line-height: 1.75;
+  padding: 14px 16px; min-height: 160px; max-height: 260px;
+  overflow-y: auto; color: var(--ink-2);
+}
+.log-line { display: block; }
+.log-ts   { color: var(--sub-2); }
+.log-ok   { color: var(--up); }
+.log-warn { color: var(--warn); }
+.log-err  { color: var(--down); }
+.log-dim  { color: var(--sub-2); }
+.log-info { color: var(--accent); }
+.log-empty {
+  color: var(--sub-2); font-style: italic;
+  font-family: var(--font); font-size: var(--fs-sm);
+}
+
+/* ---- results section ---- */
+.results-controls {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.results-status { font-size: var(--fs-sm); color: var(--sub); margin-left: auto; }
+.table-scroll {
+  overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r);
+}
+table { min-width: 700px; }
+thead th { background: var(--panel); white-space: nowrap; cursor: default; }
+thead th.sortable { cursor: pointer; user-select: none; }
+thead th.sortable:hover { color: var(--ink); }
+.sort-icon { margin-left: 4px; opacity: 0.35; font-size: 0.65rem; }
+th[aria-sort="ascending"]  .sort-icon::after { content: " \25B2"; opacity: 1; }
+th[aria-sort="descending"] .sort-icon::after { content: " \25BC"; opacity: 1; }
+th:not([aria-sort]) .sort-icon::after { content: " \25B2\25BC"; }
+
+td.num { text-align: right; }
+th.num { text-align: right; }
+td.lowest-price { color: var(--up); font-weight: 600; }
+
+.empty-row td {
+  text-align: center; color: var(--sub-2);
+  font-size: var(--fs-sm); padding: 32px 12px; font-style: italic;
+}
+
+/* ---- schedule history ---- */
+.history-wrap { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.history-wrap table { min-width: 0; }
+.history-wrap thead th { background: var(--panel); }
+
+/* ---- section spacing ---- */
+.section-head { margin-bottom: 20px; }
+.section-head h2 { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="page-head" role="banner">
+  <div class="wrap">
+    <div class="inner">
+      <a href="../index.html" class="back reveal d1">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        포트폴리오로 돌아가기
+      </a>
+      <p class="eyebrow reveal d1">업무 자동화 · 웹 크롤링 — 샘플 데모</p>
+      <h1 class="reveal d2">경쟁사 가격·리뷰<br>모니터링 자동화</h1>
+      <p class="lede reveal d3">스마트스토어·쿠팡 경쟁사의 판매가, 재고, 리뷰를 지정 주기에 자동 수집합니다. 중복을 제거하고 CSV로 내보내며, 이상가·재고 소진 알림을 연동할 수 있습니다.</p>
+      <p class="note reveal d4" style="margin-top:20px;">
+        이 페이지는 포트폴리오용 인터랙티브 데모입니다. 표시되는 데이터는 모두 모의(mock) 데이터이며 실제 수집 결과가 아닙니다. 실제 구현 시 robots.txt 준수·요청 간격(rate limit) 설정·이용약관 검토가 선행됩니다.
+      </p>
+      <div class="stack reveal d4">
+        <span>Python 3.11</span>
+        <span>Playwright</span>
+        <span>BeautifulSoup4</span>
+        <span>SQLite / CSV</span>
+        <span>APScheduler</span>
+        <span>robots.txt 준수</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- CONFIG -->
+<section class="section" aria-labelledby="config-heading">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="config-heading">수집 설정</h2>
+      <p class="sect-lede">키워드나 URL을 입력하고 수집 항목과 주기를 선택한 뒤 실행하세요.</p>
+    </div>
+    <form class="config-panel" id="config-form" novalidate>
+      <div class="config-grid">
+
+        <div class="field field-full">
+          <label for="target-input">대상 (키워드 또는 쿠팡·스마트스토어 URL)</label>
+          <input type="text" id="target-input" name="target"
+            placeholder="예) 무선 청소기 / https://www.coupang.com/np/search?q=..."
+            value="휴대용 선풍기" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label>수집 항목</label>
+          <div class="check-group" role="group" aria-label="수집 항목 선택">
+            <label class="check-item"><input type="checkbox" name="fields" value="name" checked> 상품명</label>
+            <label class="check-item"><input type="checkbox" name="fields" value="price" checked> 판매가</label>
+            <label class="check-item"><input type="checkbox" name="fields" value="stock" checked> 재고</label>
+            <label class="check-item"><input type="checkbox" name="fields" value="reviews" checked> 리뷰수</label>
+            <label class="check-item"><input type="checkbox" name="fields" value="rating" checked> 평점</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="schedule-select">수집 주기</label>
+          <select id="schedule-select" name="schedule">
+            <option value="manual">수동 (지금만)</option>
+            <option value="hourly">매시간 자동 수집</option>
+            <option value="daily">매일 09:00 수집</option>
+          </select>
+        </div>
+
+      </div>
+      <div class="config-footer">
+        <button type="submit" class="btn btn-primary btn-lg" id="run-btn">지금 실행</button>
+        <button type="button" class="btn" id="stop-btn" disabled>중지</button>
+        <button type="button" class="btn" id="reset-btn" style="margin-left:auto;">초기화</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- LOG -->
+<section class="section" aria-labelledby="log-heading">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="log-heading">실행 로그</h2>
+    </div>
+    <div class="log-wrap">
+      <div class="log-toolbar">
+        <span class="log-label">
+          실행 로그
+          <span class="log-running-indicator" id="log-indicator" aria-hidden="true">· 수집 중</span>
+        </span>
+        <button type="button" class="btn" id="clear-log-btn" style="padding:5px 12px;font-size:0.8rem;">지우기</button>
+      </div>
+      <div class="log-console" id="log-console"
+        role="log" aria-live="polite" aria-label="실행 로그" aria-atomic="false">
+        <span class="log-empty">실행 버튼을 누르면 수집 과정이 여기에 표시됩니다.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="section" aria-labelledby="results-heading">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="results-heading">수집 결과</h2>
+      <p class="sect-lede">판매가 클릭으로 정렬, 판매처로 필터링합니다. 최저가는 녹색으로 강조됩니다.</p>
+    </div>
+    <div class="results-controls">
+      <label for="seller-filter" class="sr-only">판매처 필터</label>
+      <select id="seller-filter" style="width:auto;" aria-controls="results-tbody">
+        <option value="">전체 판매처</option>
+      </select>
+      <button type="button" class="btn" id="export-btn" disabled>CSV 내보내기</button>
+      <span class="results-status" id="results-status" aria-live="polite" aria-atomic="true"></span>
+    </div>
+    <div class="table-scroll" role="region" aria-label="수집 결과 테이블" tabindex="0">
+      <table aria-labelledby="results-heading">
+        <thead>
+          <tr>
+            <th>판매처</th>
+            <th>상품명</th>
+            <th class="num sortable" data-col="price" aria-sort="none" tabindex="0" role="columnheader">판매가<span class="sort-icon" aria-hidden="true"></span></th>
+            <th class="num">재고</th>
+            <th class="num sortable" data-col="reviews" aria-sort="none" tabindex="0" role="columnheader">리뷰수<span class="sort-icon" aria-hidden="true"></span></th>
+            <th class="num sortable" data-col="rating" aria-sort="none" tabindex="0" role="columnheader">평점<span class="sort-icon" aria-hidden="true"></span></th>
+            <th>수집시각</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody">
+          <tr class="empty-row"><td colspan="7">수집 결과가 없습니다. 실행 후 결과가 표시됩니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- HISTORY -->
+<section class="section" aria-labelledby="history-heading">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="history-heading">최근 실행 이력</h2>
+      <p class="sect-lede">스케줄 실행 및 수동 실행 기록입니다.</p>
+    </div>
+    <div class="history-wrap">
+      <table aria-labelledby="history-heading">
+        <thead>
+          <tr>
+            <th>실행 시각</th>
+            <th>대상 키워드</th>
+            <th class="num">수집 건수</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="site-foot" role="contentinfo">
+  <div class="wrap">
+    <p class="disc">
+      이 페이지에 표시된 데이터는 모두 데모용 모의 데이터입니다. 실제 서비스에 연결되어 있지 않으며, 어떠한 실제 쇼핑몰의 데이터도 수집·저장하지 않습니다. 실제 크롤러 개발 시에는 대상 사이트의 이용약관 및 robots.txt 규정을 반드시 확인하시기 바랍니다.
+    </p>
+    <p>od1225 · 업무 자동화 데모 · 2026</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- constants ----
+  const SELLERS = ['쿠팡', '스마트스토어', 'G마켓', '옥션', '11번가'];
+  const PRODUCT_NAMES = [
+    '스탠딩 핸디형 USB 선풍기 3단 풍속',
+    '무소음 클립형 선풍기 360도 회전',
+    '미니 탁상용 선풍기 저소음 DC모터',
+    '넥밴드 휴대용 선풍기 날개없는형',
+    '접이식 핸디 선풍기 USB-C 충전',
+    '휴대용 에어쿨러 미니 냉풍기 2in1',
+    '탁상 서큘레이터 초강풍 15cm',
+    '개인용 무선 선풍기 목걸이형',
+  ];
+  const STATUS_LABEL = { ok: '성공', warn: '부분 성공', bad: '실패' };
+  const SEED_HISTORY = [
+    { time: '2026-09-01 09:00', keyword: '휴대용 선풍기',      count: 12, status: 'ok'   },
+    { time: '2026-08-31 09:00', keyword: '미니 블루투스 스피커', count: 9,  status: 'ok'   },
+    { time: '2026-08-30 09:00', keyword: '스마트 체중계',       count: 7,  status: 'warn' },
+    { time: '2026-08-29 09:00', keyword: '무선 청소기',         count: 0,  status: 'bad'  },
+    { time: '2026-08-28 09:00', keyword: '공기청정기 필터',     count: 15, status: 'ok'   },
+  ];
+
+  // ---- state ----
+  let allRows = [];
+  let filteredRows = [];
+  let sortCol = null;
+  let sortDir = 'asc';
+  let isRunning = false;
+  let runTimers = [];
+  let historyData = SEED_HISTORY.slice();
+
+  // ---- DOM refs ----
+  const form         = document.getElementById('config-form');
+  const runBtn       = document.getElementById('run-btn');
+  const stopBtn      = document.getElementById('stop-btn');
+  const resetBtn     = document.getElementById('reset-btn');
+  const clearLogBtn  = document.getElementById('clear-log-btn');
+  const logConsole   = document.getElementById('log-console');
+  const logIndicator = document.getElementById('log-indicator');
+  const sellerFilter = document.getElementById('seller-filter');
+  const exportBtn    = document.getElementById('export-btn');
+  const resultsTbody = document.getElementById('results-tbody');
+  const resultsStatus= document.getElementById('results-status');
+  const historyTbody = document.getElementById('history-tbody');
+  const targetInput  = document.getElementById('target-input');
+
+  // ---- helpers ----
+  function rnd(min, max)       { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function rndF(min, max, dec) { return parseFloat((Math.random() * (max - min) + min).toFixed(dec)); }
+  function pad2(n)             { return String(n).padStart(2, '0'); }
+  function nowTS() {
+    const d = new Date();
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  function fmtTime(d) {
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+  function fmtDateTime(d) {
+    return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate())
+      + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+  }
+
+  // ---- mock data ----
+  function generateMockRows() {
+    const now = new Date();
+    const rows = [];
+    const usedNames = new Set();
+    SELLERS.forEach(function(seller) {
+      const count = rnd(1, 3);
+      for (let i = 0; i < count; i++) {
+        let name;
+        let attempts = 0;
+        do {
+          name = PRODUCT_NAMES[rnd(0, PRODUCT_NAMES.length - 1)];
+          attempts++;
+        } while (usedNames.has(seller + name) && attempts < 20);
+        usedNames.add(seller + name);
+        rows.push({
+          seller:  seller,
+          name:    name,
+          price:   rnd(8900, 49800),
+          stock:   rnd(0, 500),
+          reviews: rnd(12, 18400),
+          rating:  rndF(3.2, 5.0, 1),
+          time:    new Date(now.getTime() - rnd(0, 120) * 1000),
+        });
+      }
+    });
+    return rows;
+  }
+
+  // ---- log ----
+  function clearLog() {
+    while (logConsole.firstChild) { logConsole.removeChild(logConsole.firstChild); }
+    const empty = document.createElement('span');
+    empty.className = 'log-empty';
+    empty.textContent = '실행 버튼을 누르면 수집 과정이 여기에 표시됩니다.';
+    logConsole.appendChild(empty);
+  }
+
+  function appendLog(text, cls) {
+    const wasEmpty = logConsole.querySelector('.log-empty');
+    if (wasEmpty) { logConsole.removeChild(wasEmpty); }
+
+    const line = document.createElement('span');
+    line.className = 'log-line';
+
+    const tsNode = document.createElement('span');
+    tsNode.className = 'log-ts';
+    tsNode.textContent = '[' + nowTS() + '] ';
+
+    const msgNode = document.createElement('span');
+    if (cls) { msgNode.className = 'log-' + cls; }
+    msgNode.textContent = text;
+
+    line.appendChild(tsNode);
+    line.appendChild(msgNode);
+    logConsole.appendChild(line);
+    logConsole.scrollTop = logConsole.scrollHeight;
+  }
+
+  // ---- run sequence ----
+  function buildRunSequence(keyword) {
+    return [
+      { delay: 0,    text: '세션 시작 — 대상: "' + keyword + '"', cls: 'info' },
+      { delay: 320,  text: 'robots.txt 확인... 허용 경로 확인됨', cls: 'ok' },
+      { delay: 700,  text: '목록 페이지 파싱 중 (1/3)...', cls: null },
+      { delay: 1200, text: '목록 페이지 파싱 중 (2/3)...', cls: null },
+      { delay: 1700, text: '목록 페이지 파싱 중 (3/3)... 총 14개 항목 감지', cls: null },
+      { delay: 2000, text: '상세 페이지 수집 시작 (0/14)', cls: 'dim' },
+      { delay: 2400, text: '상세 페이지 수집 중 (3/14)...', cls: null },
+      { delay: 2900, text: '상세 페이지 수집 중 (7/14)...', cls: null },
+      { delay: 3300, text: '상세 페이지 수집 중 (10/14)...', cls: null },
+      { delay: 3600, text: '경고: #11 응답 타임아웃 (5s) — 재시도 중...', cls: 'warn' },
+      { delay: 4300, text: '#11 재시도 성공 (2.1s)', cls: 'ok' },
+      { delay: 4600, text: '상세 페이지 수집 완료 (14/14)', cls: 'ok' },
+      { delay: 4900, text: '중복 항목 제거 중...', cls: null },
+      { delay: 5100, text: '중복 1건 제거 — 최종 13건', cls: 'dim' },
+      { delay: 5350, text: '데이터 정규화 (가격 단위, 평점 범위)...', cls: null },
+      { delay: 5650, text: 'SQLite 저장 완료 — 13행 upsert', cls: 'ok' },
+      { delay: 5900, text: '완료. 총 소요 시간: 5.9s', cls: 'ok', done: true },
+    ];
+  }
+
+  // ---- run control ----
+  function setInputsDisabled(disabled) {
+    targetInput.disabled = disabled;
+    document.querySelectorAll('input[name="fields"]').forEach(function(el) { el.disabled = disabled; });
+    document.getElementById('schedule-select').disabled = disabled;
+    runBtn.disabled = disabled;
+    stopBtn.disabled = !disabled;
+  }
+
+  function startRun() {
+    if (isRunning) { return; }
+    isRunning = true;
+    setInputsDisabled(true);
+    logIndicator.classList.add('active');
+    exportBtn.disabled = true;
+
+    const keyword = targetInput.value.trim() || '휴대용 선풍기';
+    const sequence = buildRunSequence(keyword);
+
+    sequence.forEach(function(step) {
+      const t = setTimeout(function() {
+        appendLog(step.text, step.cls);
+        if (step.done) { finishRun(keyword); }
+      }, step.delay);
+      runTimers.push(t);
+    });
+  }
+
+  function finishRun(keyword) {
+    isRunning = false;
+    setInputsDisabled(false);
+    logIndicator.classList.remove('active');
+
+    allRows = generateMockRows();
+    updateSellerFilter();
+    applyFilterAndSort();
+    exportBtn.disabled = false;
+    addHistoryRow(keyword, allRows.length, 'ok');
+  }
+
+  function stopRun() {
+    if (!isRunning) { return; }
+    runTimers.forEach(clearTimeout);
+    runTimers = [];
+    isRunning = false;
+    setInputsDisabled(false);
+    logIndicator.classList.remove('active');
+    appendLog('수집이 사용자에 의해 중지되었습니다.', 'warn');
+  }
+
+  function resetAll() {
+    stopRun();
+    clearLog();
+    allRows = [];
+    filteredRows = [];
+    sortCol = null;
+    sortDir = 'asc';
+    updateSellerFilter();
+    renderTable();
+    exportBtn.disabled = true;
+    resultsStatus.textContent = '';
+    document.querySelectorAll('th[aria-sort]').forEach(function(th) {
+      th.removeAttribute('aria-sort');
+    });
+  }
+
+  // ---- filter & sort ----
+  function updateSellerFilter() {
+    const current = sellerFilter.value;
+    while (sellerFilter.firstChild) { sellerFilter.removeChild(sellerFilter.firstChild); }
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = '전체 판매처';
+    sellerFilter.appendChild(allOpt);
+
+    const sellers = allRows.map(function(r) { return r.seller; })
+      .filter(function(v, i, a) { return a.indexOf(v) === i; })
+      .sort();
+    sellers.forEach(function(s) {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      if (s === current) { opt.selected = true; }
+      sellerFilter.appendChild(opt);
+    });
+  }
+
+  function applyFilterAndSort() {
+    const sel = sellerFilter.value;
+    filteredRows = sel
+      ? allRows.filter(function(r) { return r.seller === sel; })
+      : allRows.slice();
+
+    if (sortCol) {
+      filteredRows.sort(function(a, b) {
+        const v = sortDir === 'asc' ? 1 : -1;
+        return a[sortCol] > b[sortCol] ? v : a[sortCol] < b[sortCol] ? -v : 0;
+      });
+    }
+    renderTable();
+  }
+
+  // ---- table rendering (DOM, not innerHTML, for user-derived text fields) ----
+  function renderTable() {
+    while (resultsTbody.firstChild) { resultsTbody.removeChild(resultsTbody.firstChild); }
+
+    if (filteredRows.length === 0) {
+      const tr = document.createElement('tr');
+      tr.className = 'empty-row';
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.textContent = '수집 결과가 없습니다. 실행 후 결과가 표시됩니다.';
+      tr.appendChild(td);
+      resultsTbody.appendChild(tr);
+      resultsStatus.textContent = '';
+      return;
+    }
+
+    const lowestPrice = filteredRows.reduce(function(min, r) {
+      return r.price < min ? r.price : min;
+    }, Infinity);
+
+    filteredRows.forEach(function(r) {
+      const tr = document.createElement('tr');
+
+      // seller
+      const tdSeller = document.createElement('td');
+      tdSeller.textContent = r.seller;
+      tr.appendChild(tdSeller);
+
+      // name
+      const tdName = document.createElement('td');
+      tdName.textContent = r.name;
+      tr.appendChild(tdName);
+
+      // price
+      const tdPrice = document.createElement('td');
+      tdPrice.className = r.price === lowestPrice ? 'num lowest-price' : 'num';
+      const priceStr = r.price.toLocaleString('ko-KR') + '원';
+      if (r.price === lowestPrice) {
+        const strong = document.createElement('strong');
+        strong.textContent = priceStr;
+        tdPrice.appendChild(strong);
+      } else {
+        tdPrice.textContent = priceStr;
+      }
+      tr.appendChild(tdPrice);
+
+      // stock
+      const tdStock = document.createElement('td');
+      tdStock.className = 'num';
+      if (r.stock === 0) {
+        const span = document.createElement('span');
+        span.style.color = 'var(--down)';
+        span.textContent = '품절'; // 품절
+        tdStock.appendChild(span);
+      } else {
+        tdStock.textContent = r.stock.toLocaleString('ko-KR');
+      }
+      tr.appendChild(tdStock);
+
+      // reviews
+      const tdReviews = document.createElement('td');
+      tdReviews.className = 'num';
+      tdReviews.textContent = r.reviews.toLocaleString('ko-KR');
+      tr.appendChild(tdReviews);
+
+      // rating
+      const tdRating = document.createElement('td');
+      tdRating.className = 'num';
+      tdRating.textContent = r.rating.toFixed(1);
+      tr.appendChild(tdRating);
+
+      // time
+      const tdTime = document.createElement('td');
+      tdTime.className = 'mono';
+      tdTime.style.fontSize = '0.78rem';
+      tdTime.style.whiteSpace = 'nowrap';
+      tdTime.textContent = fmtTime(r.time);
+      tr.appendChild(tdTime);
+
+      resultsTbody.appendChild(tr);
+    });
+
+    resultsStatus.textContent = filteredRows.length + '건 표시'; // N건 표시
+  }
+
+  // ---- sort handlers ----
+  document.querySelectorAll('th.sortable').forEach(function(th) {
+    function handleSort() {
+      const col = th.dataset.col;
+      if (sortCol === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortDir = 'asc';
+      }
+      document.querySelectorAll('th[aria-sort]').forEach(function(t) {
+        t.removeAttribute('aria-sort');
+      });
+      th.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : 'descending');
+      applyFilterAndSort();
+    }
+    th.addEventListener('click', handleSort);
+    th.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort(); }
+    });
+  });
+
+  // ---- history ----
+  function renderHistory() {
+    while (historyTbody.firstChild) { historyTbody.removeChild(historyTbody.firstChild); }
+    historyData.forEach(function(h) {
+      const tr = document.createElement('tr');
+
+      const tdTime = document.createElement('td');
+      tdTime.className = 'mono';
+      tdTime.style.fontSize = '0.82rem';
+      tdTime.style.whiteSpace = 'nowrap';
+      tdTime.textContent = h.time;
+      tr.appendChild(tdTime);
+
+      const tdKw = document.createElement('td');
+      tdKw.textContent = h.keyword;
+      tr.appendChild(tdKw);
+
+      const tdCount = document.createElement('td');
+      tdCount.className = 'num';
+      tdCount.textContent = h.count > 0 ? h.count + '건' : '—'; // N건 or —
+      tr.appendChild(tdCount);
+
+      const tdStatus = document.createElement('td');
+      const pill = document.createElement('span');
+      pill.className = 'pill ' + h.status;
+      pill.textContent = STATUS_LABEL[h.status];
+      tdStatus.appendChild(pill);
+      tr.appendChild(tdStatus);
+
+      historyTbody.appendChild(tr);
+    });
+  }
+
+  function addHistoryRow(keyword, count, status) {
+    const now = new Date();
+    const timeStr = now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-' + pad2(now.getDate())
+      + ' ' + pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+    historyData.unshift({ time: timeStr, keyword: keyword, count: count, status: status });
+    renderHistory();
+  }
+
+  // ---- CSV export ----
+  exportBtn.addEventListener('click', function() {
+    if (!filteredRows.length) { return; }
+    const BOM = '﻿';
+    const headers = ['판매처', '상품명', '판매가(원)', '재고', '리뷰수', '평점', '수집시각'];
+    function escape(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }
+    const dataRows = filteredRows.map(function(r) {
+      return [
+        r.seller, r.name, r.price, r.stock, r.reviews,
+        r.rating.toFixed(1), fmtDateTime(r.time)
+      ].map(escape).join(',');
+    });
+    const csv = BOM + [headers.map(escape).join(',')].concat(dataRows).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '경쟁사_가격모니터링_'
+      + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ---- event bindings ----
+  form.addEventListener('submit', function(e) { e.preventDefault(); startRun(); });
+  stopBtn.addEventListener('click', stopRun);
+  resetBtn.addEventListener('click', resetAll);
+  clearLogBtn.addEventListener('click', clearLog);
+  sellerFilter.addEventListener('change', applyFilterAndSort);
+
+  // ---- init ----
+  renderHistory();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# local tooling / agent session state
+.omc/
+.claude/
+
+# editor / OS
+.DS_Store
+*.swp
+
+# secrets & deploy
+.env
+.env.local
+.env.*.local
+.vercel
+
+# deps
+node_modules/

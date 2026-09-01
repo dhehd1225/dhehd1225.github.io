@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 콘텐츠 생성기 — 포트폴리오 데모</title>
+<link rel="stylesheet" href="../assets/base.css">
+<style>
+  :root {
+    --accent:      #4a5d3a;
+    --accent-ink:  #38492c;
+    --accent-soft: #eaefe4;
+    --wrap:        860px;
+  }
+
+  /* ── site nav ── */
+  .site-nav {
+    border-bottom: 1px solid var(--line);
+    padding: 16px 0;
+  }
+  .site-nav .inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-mark {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  /* ── hero ── */
+  .hero {
+    padding: clamp(52px, 8vw, 80px) 0 clamp(36px, 5vw, 52px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* ── tool section ── */
+  .tool-section { padding: clamp(40px, 6vw, 64px) 0; }
+  .tool-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    margin-top: 0;
+  }
+  @media (max-width: 680px) {
+    .tool-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── segmented control (ARIA radio group) ── */
+  .seg-wrap { margin-bottom: 24px; }
+  .seg-label {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--sub);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .seg {
+    display: flex;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+  }
+  .seg-btn {
+    flex: 1;
+    padding: 9px 6px;
+    border: none;
+    border-right: 1px solid var(--line-2);
+    background: var(--bg);
+    font: inherit;
+    font-size: var(--fs-sm);
+    color: var(--sub);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+    outline: none;
+  }
+  .seg-btn:last-child { border-right: none; }
+  .seg-btn[aria-checked="true"] {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 500;
+  }
+  .seg-btn:not([aria-checked="true"]):hover {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+  }
+  .seg-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    z-index: 1;
+    position: relative;
+  }
+
+  /* ── form fields ── */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; margin-bottom: 6px; }
+  .field label .hint {
+    font-weight: 400;
+    color: var(--sub-2);
+    margin-left: 5px;
+  }
+  /* native select arrow */
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23878b93' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  /* ── action row ── */
+  .action-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    align-items: center;
+  }
+  .generating-text {
+    font-size: var(--fs-sm);
+    color: var(--sub);
+    display: none;
+  }
+  .generating-text.visible { display: block; }
+
+  /* ── output panel ── */
+  .out-panel {
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: var(--panel);
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+  }
+  .out-head {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .out-label {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--sub);
+    flex: 1;
+  }
+  .mode-badge {
+    font-size: var(--fs-xs);
+    font-family: var(--mono);
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-sm);
+    padding: 2px 7px;
+    color: var(--sub-2);
+    background: var(--code-bg);
+  }
+  .btn-copy {
+    background: none;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-sm);
+    padding: 4px 12px;
+    font: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--sub);
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease), background var(--dur) var(--ease);
+  }
+  .btn-copy:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .btn-copy.copied {
+    border-color: var(--accent);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+  }
+  .out-body {
+    flex: 1;
+    padding: 18px;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+  .out-body.empty {
+    color: var(--sub-2);
+    font-size: var(--fs-sm);
+  }
+  .out-actions {
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* ── variant cards (ad-copy) ── */
+  .variant-list { display: flex; flex-direction: column; gap: 10px; }
+  .variant-card {
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    padding: 14px 16px;
+  }
+  .variant-tag {
+    font-size: var(--fs-xs);
+    font-family: var(--mono);
+    color: var(--sub-2);
+    margin-bottom: 7px;
+  }
+  .variant-text {
+    font-size: 0.9rem;
+    line-height: 1.78;
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+
+  /* ── footer ── */
+  .site-foot { border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<nav class="site-nav" aria-label="사이트 탐색">
+  <div class="wrap inner">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span>od1225 · 포트폴리오</div>
+    <a class="back" href="../" style="margin-bottom:0">← 전체 프로젝트</a>
+  </div>
+</nav>
+
+<main>
+
+  <div class="hero">
+    <div class="wrap">
+      <p class="eyebrow reveal d1">AI 콘텐츠 생성 도구 — 포트폴리오 샘플</p>
+      <h1 class="reveal d2">한국어 마케팅 콘텐츠를<br>3초 안에 초안으로</h1>
+      <p class="lede reveal d3">상품명과 키워드를 입력하면 상품 상세설명·블로그 글·광고 카피를 즉시 생성합니다. Claude API를 활용한 프리랜서 포트폴리오 샘플입니다.</p>
+      <aside class="note reveal d4" style="margin-top:22px">
+        API 키가 설정된 환경에서는 Claude(Haiku)를 호출합니다. 키가 없으면 브라우저 내 목 생성기로 대체됩니다.
+      </aside>
+    </div>
+  </div>
+
+  <section class="tool-section" aria-label="콘텐츠 생성 도구">
+    <div class="wrap">
+      <div class="tool-grid">
+
+        <!-- 입력 패널 -->
+        <div>
+          <!-- 유형 세그먼트 컨트롤 -->
+          <div class="seg-wrap">
+            <span class="seg-label" id="seg-label">콘텐츠 유형</span>
+            <div class="seg" role="radiogroup" aria-labelledby="seg-label" id="segGroup">
+              <button class="seg-btn" role="radio" aria-checked="true"  data-type="product" tabindex="0">상품 상세설명</button>
+              <button class="seg-btn" role="radio" aria-checked="false" data-type="blog"    tabindex="-1">블로그 글</button>
+              <button class="seg-btn" role="radio" aria-checked="false" data-type="ad"      tabindex="-1">광고 카피</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="topic">상품·주제명</label>
+            <input type="text" id="topic" placeholder="예: 제주 감귤 천연 핸드크림" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="keywords">핵심 키워드 <span class="hint">쉼표로 구분</span></label>
+            <input type="text" id="keywords" placeholder="예: 촉촉함, 비건, 무향, 소용량" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="tone">톤</label>
+            <select id="tone">
+              <option value="친근한">친근한</option>
+              <option value="전문적인">전문적인</option>
+              <option value="트렌디한">트렌디한</option>
+              <option value="고급스러운">고급스러운</option>
+              <option value="유머러스한">유머러스한</option>
+            </select>
+          </div>
+          <div class="action-row">
+            <button class="btn btn-primary btn-lg" id="btnGenerate">생성하기</button>
+            <button class="btn" id="btnExample">예시로 채우기</button>
+            <span class="generating-text" id="genText" aria-live="polite" aria-atomic="true">생성 중…</span>
+          </div>
+        </div>
+
+        <!-- 출력 패널 -->
+        <div>
+          <div class="out-panel">
+            <div class="out-head">
+              <span class="out-label" id="outLabel">결과</span>
+              <span id="modeBadge" hidden class="mode-badge">mock</span>
+              <button class="btn-copy" id="btnCopy" hidden aria-label="결과 텍스트 복사">복사</button>
+            </div>
+            <div id="outContent" class="out-body empty">
+              생성하기를 누르면 여기에 결과가 나옵니다.
+            </div>
+            <span id="outStatus" class="sr-only" role="status" aria-live="polite"></span>
+            <div class="out-actions" id="outActions" hidden>
+              <button class="btn" id="btnRegen">다시 생성</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="disc">
+      이 도구는 <strong>프리랜서 포트폴리오 샘플</strong>입니다. 실제 서비스가 아닙니다.<br>
+      <strong>API 키 설정 시</strong> — Vercel 환경변수 <code class="mono">ANTHROPIC_API_KEY</code>를 추가하면 Claude(Haiku)가 실제로 호출됩니다.<br>
+      <strong>키 없을 때</strong> — 브라우저에서 템플릿 기반 목 생성기가 자동으로 동작합니다.
+    </div>
+    제작: <strong>od1225</strong> · AI 콘텐츠 생성기 · 2026
+  </div>
+</footer>
+
+<script>
+'use strict';
+
+/* ── state ── */
+let currentType = 'product';
+let lastResult  = '';
+let lastPayload = null;
+
+/* ── segmented control (ARIA radio group, roving tabindex + keyboard) ── */
+(function initSeg() {
+  const group = document.getElementById('segGroup');
+  const btns  = Array.from(group.querySelectorAll('.seg-btn'));
+
+  function activate(btn) {
+    btns.forEach(function(b) {
+      b.setAttribute('aria-checked', 'false');
+      b.setAttribute('tabindex', '-1');
+    });
+    btn.setAttribute('aria-checked', 'true');
+    btn.setAttribute('tabindex', '0');
+    currentType = btn.dataset.type;
+    resetOutput();
+  }
+
+  btns.forEach(function(btn) {
+    btn.addEventListener('click', function() { activate(btn); btn.focus(); });
+    btn.addEventListener('keydown', function(e) {
+      var idx = btns.indexOf(btn);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        activate(btns[(idx + 1) % btns.length]);
+        btns[(idx + 1) % btns.length].focus();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        var prev = (idx - 1 + btns.length) % btns.length;
+        activate(btns[prev]);
+        btns[prev].focus();
+      }
+    });
+  });
+}());
+
+/* ── example filler ── */
+var EXAMPLES = {
+  product: { topic: '제주 감귤 천연 핸드크림', keywords: '촉촉함, 비건, 무향, 소용량 휴대용', tone: '친근한' },
+  blog:    { topic: '재택근무자를 위한 홈오피스 정리법', keywords: '집중력, 수납, 미니멀, 책상 세팅', tone: '친근한' },
+  ad:      { topic: '런닝화 SWIFT-X', keywords: '가벼움, 반응성, 도심 러닝, 남녀공용', tone: '트렌디한' },
+};
+
+document.getElementById('btnExample').addEventListener('click', function() {
+  var ex = EXAMPLES[currentType];
+  document.getElementById('topic').value    = ex.topic;
+  document.getElementById('keywords').value = ex.keywords;
+  document.getElementById('tone').value     = ex.tone;
+  resetOutput();
+});
+
+/* ── output helpers ── */
+function resetOutput() {
+  var c = document.getElementById('outContent');
+  c.className   = 'out-body empty';
+  c.textContent = '생성하기를 누르면 여기에 결과가 나옵니다.';
+  document.getElementById('btnCopy').hidden    = true;
+  document.getElementById('modeBadge').hidden  = true;
+  document.getElementById('outActions').hidden = true;
+  document.getElementById('outLabel').textContent = '결과';
+  lastResult  = '';
+  lastPayload = null;
+}
+
+function setGenerating(on) {
+  var btn  = document.getElementById('btnGenerate');
+  var text = document.getElementById('genText');
+  btn.disabled = on;
+  text.classList.toggle('visible', on);
+  if (on) {
+    var c = document.getElementById('outContent');
+    c.className   = 'out-body empty';
+    c.textContent = '';
+    document.getElementById('btnCopy').hidden    = true;
+    document.getElementById('modeBadge').hidden  = true;
+    document.getElementById('outActions').hidden = true;
+    document.getElementById('outStatus').textContent = '생성 중…';
+  }
+}
+
+function showResult(data, isMock) {
+  var c = document.getElementById('outContent');
+  c.className = 'out-body';
+
+  document.getElementById('modeBadge').hidden = !isMock;
+
+  var labels = { product: '상품 상세설명', blog: '블로그 글', ad: '광고 카피' };
+
+  if (data.variants) {
+    /* ad-copy: variant cards */
+    c.replaceChildren();
+    lastResult = data.variants.join('\n\n---\n\n');
+
+    var list = document.createElement('div');
+    list.className = 'variant-list';
+
+    data.variants.forEach(function(v, i) {
+      var card = document.createElement('div');
+      card.className = 'variant-card';
+
+      var tag = document.createElement('div');
+      tag.className   = 'variant-tag';
+      tag.textContent = 'variant ' + (i + 1);
+
+      var txt = document.createElement('div');
+      txt.className   = 'variant-text';
+      txt.textContent = v;
+
+      card.append(tag, txt);
+      list.appendChild(card);
+    });
+
+    c.appendChild(list);
+    document.getElementById('outLabel').textContent = '광고 카피 ' + data.variants.length + '가지';
+  } else {
+    c.textContent = data.result;
+    lastResult    = data.result;
+    document.getElementById('outLabel').textContent = labels[currentType] || '결과';
+  }
+
+  document.getElementById('btnCopy').hidden    = false;
+  document.getElementById('outActions').hidden = false;
+  document.getElementById('outStatus').textContent =
+    (data.variants ? '광고 카피 ' + data.variants.length + '가지' : (labels[currentType] || '결과')) + ' 생성 완료';
+}
+
+function showError(msg) {
+  var c = document.getElementById('outContent');
+  c.className   = 'out-body empty';
+  c.textContent = msg || '오류가 발생했습니다. 다시 시도해 주세요.';
+  document.getElementById('btnCopy').hidden    = true;
+  document.getElementById('modeBadge').hidden  = true;
+  document.getElementById('outActions').hidden = true;
+  document.getElementById('outStatus').textContent = c.textContent;
+}
+
+/* ── copy ── */
+document.getElementById('btnCopy').addEventListener('click', function() {
+  if (!lastResult) return;
+  var btn = this;
+  navigator.clipboard.writeText(lastResult).then(function() {
+    btn.textContent = '복사됨';
+    btn.setAttribute('aria-label', '복사됨');
+    btn.classList.add('copied');
+    setTimeout(function() {
+      btn.textContent = '복사';
+      btn.setAttribute('aria-label', '결과 텍스트 복사');
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+});
+
+/* ── regenerate ── */
+document.getElementById('btnRegen').addEventListener('click', function() {
+  if (lastPayload) runGenerate(lastPayload);
+});
+
+/* ── generate ── */
+document.getElementById('btnGenerate').addEventListener('click', function() {
+  var topic    = document.getElementById('topic').value.trim();
+  var keywords = document.getElementById('keywords').value.trim();
+  var tone     = document.getElementById('tone').value;
+
+  if (!topic) { document.getElementById('topic').focus(); return; }
+
+  lastPayload = { type: currentType, topic: topic, keywords: keywords, tone: tone };
+  runGenerate(lastPayload);
+});
+
+async function runGenerate(payload) {
+  setGenerating(true);
+
+  var answered = false;
+  try {
+    var r = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (r.ok) {
+      var d = await r.json();
+      showResult(d, false);
+      answered = true;
+    }
+    /* 501 = no key → fall through to mock */
+  } catch (e) { /* network error → mock */ }
+
+  if (!answered) {
+    showResult(buildMock(payload), true);
+  }
+
+  setGenerating(false);
+}
+
+/* ── client-side mock generator ──
+   Weaves topic + keywords + tone into plausible Korean copy per type. */
+function buildMock(p) {
+  var kws = p.keywords
+    ? p.keywords.split(/[,，、]/).map(function(s) { return s.trim(); }).filter(Boolean)
+    : [];
+  var k0 = kws[0] || '', k1 = kws[1] || '', k2 = kws[2] || '';
+
+  if (p.type === 'product') return mockProduct(p.topic, k0, k1, k2, p.tone, kws);
+  if (p.type === 'blog')    return mockBlog(p.topic, k0, k1, k2, p.tone, kws);
+  return mockAd(p.topic, k0, k1, k2, p.tone, kws);
+}
+
+function mockProduct(topic, k0, k1, k2, tone, kws) {
+  var opener =
+    tone === '전문적인'   ? topic + '은(는) 엄선된 원료와 검증된 제조 공정으로 완성됩니다.' :
+    tone === '고급스러운' ? topic + ' — 세심한 손길로 빚어낸 프리미엄.' :
+    tone === '트렌디한'   ? '요즘 가장 많이 찾는 ' + topic + ', 이유가 있습니다.' :
+    tone === '유머러스한' ? topic + ', 써봐야 압니다. 아니, 써보기 전엔 모릅니다.' :
+    topic + '을(를) 처음 써보는 날, 차이가 바로 느껴집니다.';
+
+  var features = [];
+  if (k0) features.push(k0 + (tone === '전문적인' ? ' 설계로 효율을 높였습니다.' : ' 덕분에 쓸수록 편합니다.'));
+  if (k1) features.push(k1 + '까지 놓치지 않았습니다.');
+  if (k2) features.push(k2 + '도 함께 챙겼습니다.');
+  if (!features.length) features.push('디테일 하나하나에 집중한 제품입니다.');
+
+  var kw_tags = kws.length ? '\n' + kws.map(function(k) { return '#' + k; }).join('  ') : '';
+
+  var close =
+    tone === '친근한'     ? '한번 써보면 왜 다시 찾는지 바로 알게 됩니다.' :
+    tone === '고급스러운' ? '일상에서 작은 사치가 필요한 순간을 위한 제품입니다.' :
+    tone === '유머러스한' ? '이미 사신 분들은 후기 대신 재구매로 답합니다.' :
+    '사용자 경험 중심으로 설계한 제품입니다.';
+
+  return { type: 'product', result: opener + '\n\n' + features.join('\n') + kw_tags + '\n\n' + close };
+}
+
+function mockBlog(topic, k0, k1, k2, tone, kws) {
+  var title =
+    tone === '트렌디한' ? '지금 ' + topic + ' 제대로 하는 법' :
+    tone === '전문적인' ? topic + ': 핵심 원리와 실전 적용' :
+    topic + (k0 ? ' — ' + k0 + '부터 시작하는 실전 가이드' : ' 완전 정복');
+
+  var intro =
+    tone === '전문적인'
+      ? topic + '을(를) 제대로 활용하려면 핵심 원리부터 짚어야 합니다. 아래에서 단계별로 정리했습니다.'
+      : tone === '트렌디한'
+      ? topic + ', 요즘 다들 얘기하는 이유가 있더라고요. 직접 해보고 정리했습니다.'
+      : topic + '에 대해 한 번쯤 제대로 정리해두고 싶었다면, 이 글이 도움이 될 거예요.';
+
+  var p1 = k0
+    ? '먼저 ' + k0 + '입니다. 처음엔 낯설 수 있지만, 원리만 이해하면 나머지는 자연스럽게 따라옵니다. ' + topic + '을(를) 시작할 때 ' + k0 + '이(가) 기반이 되는 이유가 여기 있습니다.'
+    : topic + '의 전체 흐름을 먼저 파악하는 것이 첫 번째 단계입니다. 큰 그림을 잡고 나면 세부 실행이 훨씬 수월해집니다.';
+
+  var p2 = k1
+    ? k1 + ' 관점에서 보면 ' + topic + '은(는) 훨씬 명확해집니다. ' + (tone === '트렌디한' ? '실제로 써보니 이 부분이 가장 체감이 크더라고요.' : '실제 사용자들이 꼽은 핵심 포인트이기도 합니다.')
+    : '꾸준히 반복 적용하는 것이 결국 가장 빠른 방법입니다. 처음부터 완벽할 필요는 없습니다.';
+
+  var close = (k2 ? k2 + '도 함께 챙겨두면 좋습니다. ' : '')
+    + topic + '에서 가장 중요한 것은 완벽한 시작보다 일단 해보는 것입니다. 작게 시작해서 반복하다 보면, 어느 순간 익숙해져 있을 겁니다.';
+
+  return { type: 'blog', result: title + '\n\n' + intro + '\n\n' + p1 + '\n\n' + p2 + '\n\n' + close };
+}
+
+function mockAd(topic, k0, k1, k2, tone, kws) {
+  var adj =
+    tone === '전문적인'   ? '검증된' :
+    tone === '고급스러운' ? '감각적인' :
+    tone === '트렌디한'   ? '요즘 가장 주목받는' :
+    tone === '유머러스한' ? '한번 보면 잊히지 않는' :
+    '쓸수록 좋아지는';
+
+  var v1 = (k0 ? k0 + '의 기준을 바꾼 ' : '') + topic + '.\n'
+    + (k1 ? k1 + '을(를) 원했다면, 이제 찾았습니다.' : '지금까지 없던 경험.');
+
+  var v2 = topic + ' — ' + adj + ' 선택.\n'
+    + (k0 && k1 ? k0 + '과(와) ' + k1 + ', 두 가지를 한 번에.' : k0 ? k0 + ', 그 이상.' : '한번 써보면 압니다.');
+
+  var v3 = (k2 ? k2 + '까지 담은 ' : '') + topic + '.\n'
+    + (tone === '유머러스한' ? '이게 맞나 싶을 만큼 좋습니다.' :
+       tone === '친근한'     ? '써보면 왜 진작 안 샀나 싶어요.' :
+       tone === '고급스러운' ? '선택에 이유가 있습니다.' :
+       '결과로 증명합니다.');
+
+  return { type: 'ad', variants: [v1.trim(), v2.trim(), v3.trim()] };
+}
+</script>
+</body>
+</html>
